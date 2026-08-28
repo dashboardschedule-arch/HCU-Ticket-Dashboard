@@ -178,6 +178,13 @@
   .drvrow:hover{background:#fff}
   .drvname{color:var(--txt)}
   .drvn{font-weight:800;color:var(--brand)}
+  .ohrow{cursor:pointer;transition:.1s}
+  .ohrow:hover{background:#fff}
+  .ohrow.oh-active{background:var(--brand)}
+  .ohrow.oh-active .drvname,.ohrow.oh-active .drvn{color:#fff}
+  .oh-hint{color:var(--muted2);font-style:italic}
+  .oh-detail:not(:empty){margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+  .oh-detail .drv-h{margin-bottom:6px}
   .respsel{padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;background:#fff;color:var(--txt);max-width:280px;font-family:inherit;cursor:pointer}
   .respsel:hover{border-color:var(--brand)}
   tr.crow{cursor:pointer}
@@ -1202,6 +1209,22 @@ const DATA={"periods":[{"label":"Dec 2025"},{"label":"Jan 2026"},{"label":"Feb 2
     return Object.keys(cnt).map(l=>({l:+l,n:cnt[l],d:dv[l].size})).sort((a,b)=>b.n-a.n);
   }
   document.getElementById('reasonBody').addEventListener('click',e=>{
+    const oh=e.target.closest('.ohrow');
+    if(oh){
+      const box=oh.closest('.drv-box'); const det=box.querySelector('.oh-detail');
+      const c=+oh.dataset.c,r=+oh.dataset.r,l=+oh.dataset.l;
+      const per=(oh.dataset.per!==undefined)?+oh.dataset.per:null;
+      const wasActive=oh.classList.contains('oh-active');
+      box.querySelectorAll('.ohrow.oh-active').forEach(x=>x.classList.remove('oh-active'));
+      det.innerHTML='';
+      if(wasActive) return;
+      oh.classList.add('oh-active');
+      const drv=driversFor(c,r,l,per); const tot=drv.reduce((a,x)=>a+x.n,0);
+      const perLbl=(per!=null)?(' · '+esc(currentCmp().lab(per))):'';
+      const items=drv.map((x,ix)=>'<div class="drvrow"><span class="drvname">'+(ix+1)+'. '+esc(x.name)+'</span><span class="drvn">'+fmt(x.n)+'</span></div>').join('') || '<div class="drvrow">Tidak ada data.</div>';
+      det.innerHTML='<div class="drv-h">Driver di <b>'+esc(D.locations[l])+'</b> · '+reasonMode+perLbl+' · '+drv.length+' driver · '+fmt(tot)+' tiket</div><div class="drv-grid">'+items+'</div>';
+      return;
+    }
     const head=e.target.closest('.rbhead');
     if(head){ const block=head.closest('.reasonblock'); const c=+block.dataset.c; block.classList.toggle('collapsed'); const col=block.classList.contains('collapsed'); if(col)reasonExpanded.delete(c); else reasonExpanded.add(c); const ar=head.querySelector('.rbarrow'); if(ar)ar.textContent=col?'▸':'▾'; return; }
     const op=e.target.closest('.otherpill');
@@ -1218,8 +1241,8 @@ const DATA={"periods":[{"label":"Dec 2025"},{"label":"Jan 2026"},{"label":"Feb 2
       const ranked=otherHubsFor(c,r,per); const others=ranked.slice(5);
       const tot=others.reduce((a,x)=>a+x.n,0);
       const perLbl=(per!=null)?(' · '+esc(currentCmp().lab(per))):'';
-      const items=others.map((x,ix)=>'<div class="drvrow"><span class="drvname">'+(ix+6)+'. '+esc(D.locations[x.l])+'</span><span class="drvn">'+fmt(x.n)+' tiket · '+fmt(x.d)+' driver</span></div>').join('') || '<div class="drvrow">Tidak ada data.</div>';
-      const panel='<tr class="drv-exp" data-key="'+okey+'"><td colspan="3"><div class="drv-box"><div class="drv-h">Hub lainnya (di luar Top 5) — reason "<b>'+esc(D.reasons[r])+'</b>" · '+reasonMode+perLbl+' · '+others.length+' hub · '+fmt(tot)+' tiket</div><div class="drv-grid">'+items+'</div></div></td></tr>';
+      const items=others.map((x,ix)=>'<div class="drvrow ohrow" data-c="'+c+'" data-r="'+r+'" data-l="'+x.l+'"'+(per!=null?' data-per="'+per+'"':'')+' title="Klik untuk lihat driver"><span class="drvname">'+(ix+6)+'. '+esc(D.locations[x.l])+'</span><span class="drvn">'+fmt(x.n)+' tiket · '+fmt(x.d)+' driver</span></div>').join('') || '<div class="drvrow">Tidak ada data.</div>';
+      const panel='<tr class="drv-exp" data-key="'+okey+'"><td colspan="3"><div class="drv-box"><div class="drv-h">Hub lainnya (di luar Top 5) — reason "<b>'+esc(D.reasons[r])+'</b>" · '+reasonMode+perLbl+' · '+others.length+' hub · '+fmt(tot)+' tiket &nbsp;·&nbsp; <span class="oh-hint">klik nama hub untuk lihat driver</span></div><div class="drv-grid">'+items+'</div><div class="oh-detail"></div></div></td></tr>';
       tr.insertAdjacentHTML('afterend', panel);
       return;
     }
